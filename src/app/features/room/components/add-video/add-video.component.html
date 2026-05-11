@@ -1,0 +1,21 @@
+<div class="add-video">
+  <h3 class="add-video__heading">Queue a video</h3>
+  <div class="add-video__row">
+    <input class="add-video__input" type="text"
+      placeholder="Paste YouTube URL or video ID…"
+      autocomplete="off"
+      [(ngModel)]="url"
+      (keydown)="onKeydown($event)"
+      [disabled]="loading()"/>
+    <button class="add-video__btn" [disabled]="!url.trim() || loading()" (click)="onAdd()">
+      @if (loading()) {
+        <span class="add-video__spinner"></span>
+      } @else {
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      }
+      Add
+    </button>
+  </div>
+</div>

@@ -1,0 +1,20 @@
+<div class="members">
+  <div class="members__count">
+    {{ roomService.currentRoom()?.users?.length ?? 0 }}
+    {{ (roomService.currentRoom()?.users?.length ?? 0) === 1 ? 'viewer' : 'viewers' }}
+  </div>
+
+  @for (user of roomService.currentRoom()?.users ?? []; track user.id) {
+    <div class="member">
+      <div class="member__avatar" [style.background]="user.color">{{ id.initials(user.name) }}</div>
+      <div class="member__info">
+        <div class="member__name">
+          {{ user.name }}
+          @if (isCurrentUser(user.id)) { <span class="member__you">YOU</span> }
+          @if (isHost(user.id))        { <span class="member__host">HOST</span> }
+        </div>
+        <div class="member__status"><span class="member__dot"></span>Watching</div>
+      </div>
+    </div>
+  }
+</div>

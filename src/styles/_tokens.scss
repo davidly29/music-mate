@@ -1,0 +1,29 @@
+// ─── Colors ───────────────────────────────────────────────────────────────────
+$bg:         #0a0a0c;
+$surface:    #111116;
+$surface2:   #18181f;
+$surface3:   #1f1f28;
+$border:     rgba(255, 255, 255, 0.07);
+$border2:    rgba(255, 255, 255, 0.12);
+$accent:     #e8c547;
+$accent2:    #c9a82e;
+$accent-dim: rgba(232, 197, 71, 0.12);
+$red:        #e05252;
+$green:      #52d68a;
+$blue:       #52aad6;
+$text:       #f0eff5;
+$text2:      #9896a8;
+$text3:      #5e5c6e;
+
+// ─── Typography ───────────────────────────────────────────────────────────────
+$font-serif: 'DM Serif Display', Georgia, serif;
+$font-mono:  'DM Mono', 'Courier New', monospace;
+$font-sans:  'Instrument Sans', sans-serif;
+
+// ─── Shape ────────────────────────────────────────────────────────────────────
+$radius:     10px;
+$radius-lg:  16px;
+$radius-sm:  6px;
+
+// ─── Motion ───────────────────────────────────────────────────────────────────
+$transition: 180ms cubic-bezier(0.4, 0, 0.2, 1);

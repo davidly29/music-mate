@@ -1,0 +1,76 @@
+@use '../../../styles/tokens' as t;
+
+.room { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+.room-header {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(10,10,12,0.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid t.$border;
+  flex-shrink: 0;
+
+  &__back {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid t.$border; color: t.$text2; background: none; cursor: pointer;
+    transition: all t.$transition; flex-shrink: 0;
+    &:hover { border-color: t.$border2; color: t.$text; }
+  }
+
+  &__title { flex: 1; min-width: 0; }
+
+  &__name {
+    display: block; font-family: t.$font-serif; font-size: 1.15rem; font-style: italic;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  &__code { display: block; font-size: 0.7rem; color: t.$text3; letter-spacing: 0.05em; margin-top: 0.1rem; }
+
+  &__users { display: flex; align-items: center; flex-shrink: 0; }
+}
+
+.user-bubble {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 2px solid t.$bg;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.65rem; font-weight: 700;
+  margin-left: -6px; flex-shrink: 0;
+  color: rgba(0,0,0,0.8);
+  &:first-child { margin-left: 0; }
+  &--overflow { background: t.$surface3; color: t.$text2; font-size: 0.6rem; }
+}
+
+.room-body {
+  display: grid; grid-template-columns: 1fr 340px;
+  flex: 1; min-height: 0; overflow: hidden;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+}
+
+.room-player-col { display: flex; flex-direction: column; overflow-y: auto; min-width: 0; }
+
+.room-sidebar {
+  border-left: 1px solid t.$border;
+  background: t.$surface;
+  display: flex; flex-direction: column; overflow: hidden;
+
+  @media (max-width: 900px) { border-left: none; border-top: 1px solid t.$border; max-height: 60vh; }
+}
+
+.sidebar-tabs { display: flex; border-bottom: 1px solid t.$border; flex-shrink: 0; }
+
+.sidebar-tab {
+  flex: 1; padding: 0.75rem 0.5rem;
+  font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em; text-transform: capitalize;
+  color: t.$text3; background: none; border: none; border-bottom: 2px solid transparent;
+  cursor: pointer; transition: color t.$transition;
+  &:hover { color: t.$text; }
+  &--active { color: t.$accent; border-bottom-color: t.$accent; }
+}
+
+.sidebar-panel { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }

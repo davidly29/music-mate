@@ -1,0 +1,40 @@
+@use '../../../../../styles/tokens' as t;
+
+.add-video {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid t.$border;
+
+  &__heading {
+    font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: t.$text3; font-weight: 600; margin-bottom: 0.75rem;
+  }
+
+  &__row { display: flex; gap: 0.5rem; }
+
+  &__input {
+    flex: 1; background: t.$surface2; border: 1px solid t.$border;
+    border-radius: t.$radius; padding: 0.65rem 1rem; font-size: 0.875rem;
+    color: t.$text; font-family: t.$font-sans; transition: border-color t.$transition; min-width: 0;
+    &::placeholder { color: t.$text3; }
+    &:focus { outline: none; border-color: t.$accent; }
+    &:disabled { opacity: 0.5; }
+  }
+
+  &__btn {
+    display: flex; align-items: center; gap: 0.4rem;
+    padding: 0.65rem 1.1rem; background: t.$accent; color: t.$bg;
+    border: none; border-radius: t.$radius; font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    transition: background t.$transition, transform t.$transition;
+    &:hover:not(:disabled) { background: t.$accent2; transform: translateY(-1px); }
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
+  }
+
+  &__spinner {
+    width: 12px; height: 12px;
+    border: 2px solid rgba(0,0,0,0.3); border-top-color: #000;
+    border-radius: 50%; animation: spin 0.6s linear infinite;
+  }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }

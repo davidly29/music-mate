@@ -1,0 +1,19 @@
+<div class="player">
+  <div class="player__wrapper">
+    @if (!roomService.playbackState().currentItem) {
+      <div class="player__placeholder">
+        <div class="player__placeholder-icon">▶</div>
+        <p>Add a YouTube video to get started</p>
+      </div>
+    }
+    <div #playerEl class="player__el"></div>
+  </div>
+
+  @if (roomService.playbackState().currentItem; as item) {
+    <div class="player__now-playing">
+      <span class="player__np-label">Now playing</span>
+      <h2 class="player__np-title">{{ item.title }}</h2>
+      <p class="player__np-meta">Added by {{ item.addedBy }}</p>
+    </div>
+  }
+</div>

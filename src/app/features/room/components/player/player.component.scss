@@ -1,0 +1,38 @@
+@use '../../../../../styles/tokens' as t;
+
+.player {
+  &__wrapper {
+    position: relative; width: 100%; aspect-ratio: 16 / 9;
+    background: #000; overflow: hidden;
+  }
+
+  &__el {
+    position: absolute; inset: 0;
+    iframe, > div {
+      position: absolute !important; inset: 0 !important;
+      width: 100% !important; height: 100% !important;
+    }
+  }
+
+  &__placeholder {
+    position: absolute; inset: 0; z-index: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
+    background: t.$surface;
+    p { color: t.$text3; font-size: 0.9rem; }
+  }
+
+  &__placeholder-icon { font-size: 2.5rem; opacity: 0.2; }
+
+  &__now-playing {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid t.$border;
+  }
+
+  &__np-label {
+    display: block; font-size: 0.7rem; letter-spacing: 0.07em;
+    text-transform: uppercase; color: t.$accent; font-weight: 600; margin-bottom: 0.35rem;
+  }
+
+  &__np-title { font-family: t.$font-serif; font-size: 1.25rem; line-height: 1.3; margin-bottom: 0.25rem; }
+  &__np-meta { font-size: 0.8rem; color: t.$text3; }
+}

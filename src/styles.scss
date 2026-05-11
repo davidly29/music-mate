@@ -1,0 +1,111 @@
+@use 'styles/tokens' as t;
+@use 'styles/mixins' as m;
+
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: t.$bg;
+  color: t.$text;
+  font-family: t.$font-sans;
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.5;
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: t.$surface3; border-radius: 4px; }
+* { scrollbar-width: thin; scrollbar-color: t.$surface3 transparent; }
+
+::selection { background: t.$accent; color: t.$bg; }
+
+button { font-family: t.$font-sans; cursor: pointer; border: none; background: none; color: inherit; line-height: 1; }
+input, textarea { font-family: t.$font-sans; color: t.$text; background: none; border: none; outline: none; line-height: 1.5; }
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: 100%; }
+ul, ol { list-style: none; }
+h1,h2,h3,h4,h5,h6 { font-weight: 400; }
+
+// ─── Shared buttons ───────────────────────────────────────────────────────────
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.5rem;
+  border-radius: t.$radius;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background t.$transition, border-color t.$transition, transform t.$transition, box-shadow t.$transition;
+
+  &:disabled { opacity: 0.4; pointer-events: none; }
+
+  &--primary {
+    background: t.$accent;
+    color: t.$bg;
+    &:hover { background: t.$accent2; transform: translateY(-1px); box-shadow: 0 8px 30px rgba(232,197,71,0.25); }
+    &:active { transform: translateY(0); }
+  }
+
+  &--outline {
+    background: transparent;
+    color: t.$text;
+    border: 1px solid t.$border2;
+    &:hover { border-color: t.$accent; background: t.$accent-dim; }
+  }
+
+  &--full { width: 100%; }
+}
+
+// ─── Shared fields ────────────────────────────────────────────────────────────
+.field {
+  margin-bottom: 1.25rem;
+
+  &__label {
+    display: block;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: t.$text3;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  &__input {
+    width: 100%;
+    background: t.$surface2;
+    border: 1px solid t.$border;
+    border-radius: t.$radius;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    color: t.$text;
+    transition: border-color t.$transition;
+
+    &::placeholder { color: t.$text3; }
+    &:focus { border-color: t.$accent; }
+
+    &--code {
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-family: t.$font-mono;
+    }
+  }
+}
+
+// ─── Route animation ──────────────────────────────────────────────────────────
+router-outlet + * {
+  animation: routeFadeIn 0.25s ease;
+}
+
+@keyframes routeFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

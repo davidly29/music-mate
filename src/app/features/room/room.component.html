@@ -1,0 +1,53 @@
+@if (roomService.currentRoom(); as room) {
+  <div class="room">
+    <header class="room-header">
+      <button class="room-header__back" (click)="onLeave()" aria-label="Leave room">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div class="room-header__title">
+        <span class="room-header__name">{{ room.name }}</span>
+        <span class="room-header__code">Code: {{ room.code }}</span>
+      </div>
+      <div class="room-header__users">
+        @for (user of room.users.slice(0, 4); track user.id) {
+          <div class="user-bubble" [style.background]="user.color" [title]="user.name">
+            {{ id.initials(user.name) }}
+          </div>
+        }
+        @if (room.users.length > 4) {
+          <div class="user-bubble user-bubble--overflow">+{{ room.users.length - 4 }}</div>
+        }
+      </div>
+    </header>
+
+    <div class="room-body">
+      <div class="room-player-col">
+        <sw-player />
+        <sw-add-video />
+      </div>
+
+      <aside class="room-sidebar">
+        <div class="sidebar-tabs" role="tablist">
+          @for (tab of tabs; track tab) {
+            <button
+              class="sidebar-tab"
+              [class.sidebar-tab--active]="activeTab() === tab"
+              (click)="setTab(tab)"
+              role="tab"
+            >{{ tab | titlecase }}</button>
+          }
+        </div>
+
+        <div class="sidebar-panel">
+          @switch (activeTab()) {
+            @case ('queue')   { <sw-queue /> }
+            @case ('chat')    { <sw-chat /> }
+            @case ('members') { <sw-members /> }
+          }
+        </div>
+      </aside>
+    </div>
+  </div>
+}

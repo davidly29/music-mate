@@ -1,0 +1,94 @@
+<div class="lobby">
+  <div class="lobby__glow"></div>
+  <div class="lobby__noise"></div>
+
+  <main class="lobby__main">
+    <div class="lobby__logo-wrap">
+      <h1 class="lobby__logo">SyncWatch</h1>
+      <p class="lobby__tagline">Watch together, anywhere</p>
+    </div>
+
+    <div class="card">
+      <h2 class="card__title">Start a room</h2>
+
+      <div class="field">
+        <label class="field__label" for="create-name">Your first name</label>
+        <input id="create-name" class="field__input" type="text"
+          placeholder="e.g. Alex" maxlength="24" autocomplete="off" [(ngModel)]="createName"/>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="create-room">Room name</label>
+        <input id="create-room" class="field__input" type="text"
+          placeholder="e.g. Friday Night Cinema" maxlength="40" autocomplete="off" [(ngModel)]="createRoomName"/>
+      </div>
+
+      <button class="btn btn--primary btn--full"
+        [disabled]="!createName.trim() || !createRoomName.trim()"
+        (click)="onCreateRoom()">
+        Create Room
+      </button>
+
+      <div class="divider"><span>or join existing</span></div>
+
+      <button class="btn btn--outline btn--full" (click)="openJoinModal()">
+        Enter room code
+      </button>
+    </div>
+
+    <div class="room-list">
+      <h3 class="room-list__heading">Open rooms</h3>
+
+      @if (roomService.lobbyRooms().length === 0) {
+        <p class="room-list__empty">No rooms yet — create one above</p>
+      } @else {
+        @for (room of roomService.lobbyRooms(); track room.id) {
+          <div class="room-card" (click)="onClickRoom(room)">
+            <div class="room-card__info">
+              <div class="room-card__name">{{ room.name }}</div>
+              <div class="room-card__meta">
+                {{ room.userCount }} viewer{{ room.userCount !== 1 ? 's' : '' }}
+                &middot; Code: {{ room.code }}
+              </div>
+            </div>
+            <div class="room-card__badge">
+              <span class="badge-dot"></span>{{ room.userCount }} live
+            </div>
+          </div>
+        }
+      }
+    </div>
+  </main>
+</div>
+
+@if (showJoinModal()) {
+  <div class="modal-overlay" (click)="closeJoinModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <button class="modal__close" (click)="closeJoinModal()" aria-label="Close">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <h2 class="modal__title">Join a room</h2>
+      <p class="modal__desc">Enter your name and the room code shared by the host.</p>
+
+      <div class="field">
+        <label class="field__label" for="join-name">Your first name</label>
+        <input id="join-name" class="field__input" type="text"
+          placeholder="e.g. Alex" maxlength="24" autocomplete="off" [(ngModel)]="joinName"/>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="join-code">Room code</label>
+        <input id="join-code" class="field__input field__input--code" type="text"
+          placeholder="e.g. XKQP42" maxlength="8" autocomplete="off" [(ngModel)]="joinCode"/>
+      </div>
+
+      <button class="btn btn--primary btn--full"
+        [disabled]="!joinName.trim() || !joinCode.trim()"
+        (click)="onJoinRoom()">
+        Join Room
+      </button>
+    </div>
+  </div>
+}

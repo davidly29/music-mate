@@ -1,0 +1,32 @@
+<div class="queue">
+  @if (!roomService.currentRoom()?.queue?.length) {
+    <div class="queue__empty">
+      <div class="queue__empty-icon">☰</div>
+      <p>Queue is empty</p>
+      <span>Add YouTube videos below</span>
+    </div>
+  } @else {
+    @for (item of roomService.currentRoom()!.queue; track item.id; let i = $index) {
+      <div class="queue-item" [class.queue-item--active]="isActive(i)" (click)="onPlay(i)">
+        <span class="queue-item__index">{{ (i + 1).toString().padStart(2, '0') }}</span>
+        <div class="queue-item__thumb">
+          <img [src]="item.thumbnailUrl" [alt]="item.title" loading="lazy"/>
+          @if (isActive(i)) {
+            <div class="queue-item__playing-indicator">
+              <span></span><span></span><span></span>
+            </div>
+          }
+        </div>
+        <div class="queue-item__info">
+          <p class="queue-item__title">{{ item.title }}</p>
+          <p class="queue-item__meta">{{ item.addedBy }}</p>
+        </div>
+        <button class="queue-item__remove" (click)="onRemove($event, i)" title="Remove" aria-label="Remove">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    }
+  }
+</div>

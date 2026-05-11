@@ -1,0 +1,35 @@
+<div class="chat">
+  <div class="chat__messages" #messagesEl>
+    @if (!roomService.currentRoom()?.chat?.length) {
+      <div class="chat__empty">No messages yet</div>
+    }
+    @for (msg of roomService.currentRoom()?.chat ?? []; track msg.id) {
+      @if (msg.type === 'system') {
+        <div class="chat-msg chat-msg--system">{{ msg.text }}</div>
+      } @else {
+        <div class="chat-msg" [class.chat-msg--own]="isOwn(msg.userId)">
+          <div class="chat-msg__avatar" [style.background]="msg.userColor" [title]="msg.userName">
+            {{ id.initials(msg.userName ?? '') }}
+          </div>
+          <div class="chat-msg__body">
+            <div class="chat-msg__sender" [style.color]="msg.userColor">
+              {{ msg.userName }}
+              @if (isOwn(msg.userId)) { <span class="chat-msg__you">you</span> }
+            </div>
+            <div class="chat-msg__bubble">{{ msg.text }}</div>
+          </div>
+        </div>
+      }
+    }
+  </div>
+  <div class="chat__input-row">
+    <input class="chat__input" type="text" placeholder="Say something…"
+      maxlength="300" autocomplete="off"
+      [(ngModel)]="message" (keydown)="onKeydown($event)"/>
+    <button class="chat__send" [disabled]="!message.trim()" (click)="onSend()" aria-label="Send">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M13 1L1 6l5 1.5L7.5 13 13 1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+</div>
