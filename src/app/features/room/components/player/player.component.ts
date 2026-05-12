@@ -1,21 +1,27 @@
 import {
-  Component, OnInit, OnDestroy, ElementRef,
-  ViewChild, AfterViewInit, PLATFORM_ID, Inject
-} from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { Subscription } from 'rxjs';
-import { RoomService } from '../../../../core/services/room.service';
-import { SocketService } from '../../../../core/services/socket.service';
+  Component,
+  OnInit,
+  OnDestroy,
+  ElementRef,
+  ViewChild,
+  AfterViewInit,
+  PLATFORM_ID,
+  Inject,
+} from "@angular/core";
+import { CommonModule, isPlatformBrowser } from "@angular/common";
+import { Subscription } from "rxjs";
+import { RoomService } from "../../../../core/services/room.service";
+import { SocketService } from "../../../../core/services/socket.service";
 
 @Component({
-  selector: 'sw-player',
+  selector: "sw-player",
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './player.component.html',
-  styleUrls: ['./player.component.scss'],
+  templateUrl: "./player.component.html",
+  styleUrls: ["./player.component.scss"],
 })
 export class PlayerComponent implements OnInit, AfterViewInit, OnDestroy {
-  @ViewChild('playerEl') playerEl!: ElementRef<HTMLDivElement>;
+  @ViewChild("playerEl") playerEl!: ElementRef<HTMLDivElement>;
 
   private _player: YT.Player | null = null;
   private _subs: Subscription[] = [];
@@ -35,7 +41,7 @@ export class PlayerComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit(): void {
     // Play a new video when RoomService signals it
     this._subs.push(
-      this.roomService.playVideo$.subscribe(event => {
+      this.roomService.playVideo$.subscribe((event) => {
         if (event) this._loadVideo(event.videoId, event.time);
         else this._clearPlayer();
       }),
@@ -55,7 +61,7 @@ export class PlayerComponent implements OnInit, AfterViewInit, OnDestroy {
             this._player.playVideo();
           } catch {}
         }
-        setTimeout(() => this._isSyncing = false, 500);
+        setTimeout(() => (this._isSyncing = false), 500);
       }),
 
       // ── Remote PAUSE ──────────────────────────────────────────────────────
@@ -67,16 +73,18 @@ export class PlayerComponent implements OnInit, AfterViewInit, OnDestroy {
             this._player.pauseVideo();
           } catch {}
         }
-        setTimeout(() => this._isSyncing = false, 500);
+        setTimeout(() => (this._isSyncing = false), 500);
       }),
 
       // ── Remote SEEK ───────────────────────────────────────────────────────
       this.socketService.onSeek$.subscribe(({ time }) => {
         this._isSyncing = true;
         if (this._player) {
-          try { this._player.seekTo(time, true); } catch {}
+          try {
+            this._player.seekTo(time, true);
+          } catch {}
         }
-        setTimeout(() => this._isSyncing = false, 500);
+        setTimeout(() => (this._isSyncing = false), 500);
       }),
 
       // ── Queue stopped ─────────────────────────────────────────────────────
@@ -93,25 +101,27 @@ export class PlayerComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this._subs.forEach(s => s.unsubscribe());
+    this._subs.forEach((s) => s.unsubscribe());
     this._destroyPlayer();
   }
 
   private _loadYTApi(): void {
     if ((window as any).YT?.Player) {
       this._apiReady = true;
-      if (this._pendingVideoId) this._initPlayer(this._pendingVideoId, this._pendingTime);
+      if (this._pendingVideoId)
+        this._initPlayer(this._pendingVideoId, this._pendingTime);
       return;
     }
 
     (window as any).onYouTubeIframeAPIReady = () => {
       this._apiReady = true;
-      if (this._pendingVideoId) this._initPlayer(this._pendingVideoId, this._pendingTime);
+      if (this._pendingVideoId)
+        this._initPlayer(this._pendingVideoId, this._pendingTime);
     };
 
     if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
-      const s = document.createElement('script');
-      s.src = 'https://www.youtube.com/iframe_api';
+      const s = document.createElement("script");
+      s.src = "https://www.youtube.com/iframe_api";
       document.head.appendChild(s);
     }
   }
@@ -138,13 +148,30 @@ export class PlayerComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!this.playerEl?.nativeElement) return;
     this._destroyPlayer();
 
-    const el = document.createElement('div');
+    const el = document.createElement("div");
     this.playerEl.nativeElement.appendChild(el);
 
     this._player = new (window as any).YT.Player(el, {
       videoId,
-      playerVars: { autoplay: 1, rel: 0, modestbranding: 1, start: Math.floor(startSeconds) },
+      width: "100%", // ← tell YT API to use 100%
+      height: "100%", // ← tell YT API to use 100%
+      playerVars: {
+        autoplay: 1,
+        rel: 0,
+        modestbranding: 1,
+        start: Math.floor(startSeconds),
+      },
       events: {
+        onReady: () => {
+          // Force the iframe to fill its container after YT injects it
+          const iframe = this.playerEl.nativeElement.querySelector("iframe");
+          if (iframe) {
+            iframe.style.width = "100%";
+            iframe.style.height = "100%";
+            iframe.style.position = "absolute";
+            iframe.style.inset = "0";
+          }
+        },
         onStateChange: (e: YT.OnStateChangeEvent) => this._onStateChange(e),
         onError: () => this.roomService.advanceQueue(),
       },
@@ -162,7 +189,11 @@ export class PlayerComponent implements OnInit, AfterViewInit, OnDestroy {
 
     switch (e.data) {
       case (window as any).YT.PlayerState.PLAYING:
-        this.socketService.emitPlay(room.id, this.roomService.playbackState().currentIndex, time);
+        this.socketService.emitPlay(
+          room.id,
+          this.roomService.playbackState().currentIndex,
+          time,
+        );
         break;
       case (window as any).YT.PlayerState.PAUSED:
         this.socketService.emitPause(room.id, time);
@@ -174,7 +205,11 @@ export class PlayerComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private _getCurrentTime(): number {
-    try { return this._player?.getCurrentTime() ?? 0; } catch { return 0; }
+    try {
+      return this._player?.getCurrentTime() ?? 0;
+    } catch {
+      return 0;
+    }
   }
 
   private _clearPlayer(): void {
@@ -183,11 +218,13 @@ export class PlayerComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private _destroyPlayer(): void {
     if (this._player) {
-      try { this._player.destroy(); } catch {}
+      try {
+        this._player.destroy();
+      } catch {}
       this._player = null;
     }
     if (this.playerEl?.nativeElement) {
-      this.playerEl.nativeElement.innerHTML = '';
+      this.playerEl.nativeElement.innerHTML = "";
     }
   }
 }
