@@ -52,7 +52,13 @@
   }
 }
 
-.room-player-col { display: flex; flex-direction: column; overflow-y: auto; min-width: 0; }
+.room-player-col {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;      // ← change from overflow-y: auto
+  min-width: 0;
+  height: 100%;          // ← add this
+}
 
 .room-sidebar {
   border-left: 1px solid t.$border;

@@ -2,9 +2,24 @@
 
 .player {
   &__wrapper {
-    position: relative; width: 100%; aspect-ratio: 16 / 9;
-    background: #000; overflow: hidden;
+  position: relative;
+  width: 100%;
+  background: #000;
+  overflow: hidden;
+
+  // Fill all available vertical space in the column
+  flex: 1;
+  min-height: 0;
+
+  // The iframe fills the full wrapper
+  iframe,
+  .player__el > div {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
   }
+}
 
   &__el {
     position: absolute; inset: 0;
