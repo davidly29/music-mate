@@ -10,6 +10,14 @@
   </div>
 
   @if (roomService.playbackState().currentItem; as item) {
+    <div class="player__progress">
+      <span class="player__time">{{ formatTime(currentTimeSec()) }}</span>
+      <div class="player__bar">
+        <div class="player__fill" [style.width.%]="progressPercent()"></div>
+      </div>
+      <span class="player__time">{{ formatTime(durationSec()) }}</span>
+    </div>
+
     <div class="player__now-playing">
       <span class="player__np-label">Now playing</span>
       <h2 class="player__np-title">{{ item.title }}</h2>

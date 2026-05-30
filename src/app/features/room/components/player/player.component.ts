@@ -7,6 +7,7 @@ import {
   AfterViewInit,
   PLATFORM_ID,
   Inject,
+  signal,
 } from "@angular/core";
 import { CommonModule, isPlatformBrowser } from "@angular/common";
 import { Subscription } from "rxjs";
@@ -23,11 +24,16 @@ import { SocketService } from "../../../../core/services/socket.service";
 export class PlayerComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild("playerEl") playerEl!: ElementRef<HTMLDivElement>;
 
+  readonly progressPercent = signal(0);
+  readonly currentTimeSec  = signal(0);
+  readonly durationSec     = signal(0);
+
   private _player: YT.Player | null = null;
   private _subs: Subscription[] = [];
   private _apiReady = false;
   private _pendingVideoId: string | null = null;
   private _pendingTime = 0;
+  private _progressInterval: ReturnType<typeof setInterval> | null = null;
   // Prevents echo: when we apply a remote event we set this flag
   // so the resulting YT state change doesn't get re-emitted back
   private _isSyncing = false;
@@ -102,6 +108,7 @@ export class PlayerComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this._subs.forEach((s) => s.unsubscribe());
+    this._stopProgress();
     this._destroyPlayer();
   }
 
@@ -178,7 +185,43 @@ export class PlayerComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  formatTime(seconds: number): string {
+    const s = Math.floor(seconds);
+    const m = Math.floor(s / 60);
+    return `${m}:${(s % 60).toString().padStart(2, '0')}`;
+  }
+
+  private _startProgress(): void {
+    this._stopProgress();
+    this._progressInterval = setInterval(() => {
+      if (!this._player) return;
+      try {
+        const current  = this._player.getCurrentTime() ?? 0;
+        const duration = this._player.getDuration()    ?? 0;
+        this.currentTimeSec.set(current);
+        this.durationSec.set(duration);
+        this.progressPercent.set(duration > 0 ? (current / duration) * 100 : 0);
+      } catch { /* player not ready */ }
+    }, 1000);
+  }
+
+  private _stopProgress(): void {
+    if (this._progressInterval !== null) {
+      clearInterval(this._progressInterval);
+      this._progressInterval = null;
+    }
+  }
+
   private _onStateChange(e: YT.OnStateChangeEvent): void {
+    const YTState = (window as any).YT.PlayerState;
+
+    // Track progress locally regardless of who triggered the state change
+    if (e.data === YTState.PLAYING) {
+      this._startProgress();
+    } else {
+      this._stopProgress();
+    }
+
     // If we triggered this change ourselves, don't re-broadcast
     if (this._isSyncing) return;
 
@@ -188,17 +231,17 @@ export class PlayerComponent implements OnInit, AfterViewInit, OnDestroy {
     const time = this._getCurrentTime();
 
     switch (e.data) {
-      case (window as any).YT.PlayerState.PLAYING:
+      case YTState.PLAYING:
         this.socketService.emitPlay(
           room.id,
           this.roomService.playbackState().currentIndex,
           time,
         );
         break;
-      case (window as any).YT.PlayerState.PAUSED:
+      case YTState.PAUSED:
         this.socketService.emitPause(room.id, time);
         break;
-      case (window as any).YT.PlayerState.ENDED:
+      case YTState.ENDED:
         this.roomService.advanceQueue();
         break;
     }
@@ -213,6 +256,10 @@ export class PlayerComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private _clearPlayer(): void {
+    this._stopProgress();
+    this.progressPercent.set(0);
+    this.currentTimeSec.set(0);
+    this.durationSec.set(0);
     this._destroyPlayer();
   }
 

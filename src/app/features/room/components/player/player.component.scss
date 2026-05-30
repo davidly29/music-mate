@@ -28,6 +28,38 @@
 
   &__placeholder-icon { font-size: 2.5rem; opacity: 0.2; }
 
+  &__progress {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1.5rem;
+    background: t.$surface;
+    border-bottom: 1px solid t.$border;
+  }
+
+  &__bar {
+    flex: 1;
+    height: 4px;
+    background: t.$border;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  &__fill {
+    height: 100%;
+    background: t.$accent;
+    border-radius: 2px;
+    transition: width 0.9s linear;
+  }
+
+  &__time {
+    font-size: 0.72rem;
+    color: t.$text3;
+    font-variant-numeric: tabular-nums;
+    min-width: 2.5rem;
+    text-align: center;
+  }
+
   &__now-playing {
     padding: 1.25rem 1.5rem;
     border-bottom: 1px solid t.$border;

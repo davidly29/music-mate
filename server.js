@@ -5,8 +5,13 @@ const path = require('path');
 
 const app = express();
 const httpServer = createServer(app);
+
+const corsOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',')
+  : ['http://localhost:4200', 'http://127.0.0.1:4200'];
+
 const io = new Server(httpServer, {
-  cors: { origin: ['http://localhost:4200', 'http://127.0.0.1:4200'], methods: ['GET', 'POST'], credentials: true }
+  cors: { origin: corsOrigins, methods: ['GET', 'POST'], credentials: true }
 });
 
 // Serve Angular production build
@@ -16,7 +21,8 @@ app.get('*', (req, res) => {
 });
 
 // ─── In-memory room state ────────────────────────────────────────────────────
-// rooms[id] = { users, queue, chat, currentIndex, isPlaying, currentTime, hostId, name, code }
+// rooms[id] = { users, queue, chat, currentIndex, isPlaying, currentTime,
+//               playbackBaseTime, playbackStartedAt, hostId, name, code }
 const rooms = {};
 
 function getRoomSummaries() {
@@ -28,6 +34,41 @@ function getRoomSummaries() {
     userCount: r.users.length,
     queueLength: r.queue.length,
   }));
+}
+
+// Returns the actual playback position accounting for elapsed time since last play.
+function getActualTime(room) {
+  if (!room.isPlaying || !room.playbackStartedAt) return room.currentTime;
+  return room.playbackBaseTime + (Date.now() - room.playbackStartedAt) / 1000;
+}
+
+// ─── Rate limiting ───────────────────────────────────────────────────────────
+const socketCounts = new Map(); // socketId -> { [event]: { count, resetAt } }
+
+const RATE_LIMITS = {
+  'chat:send':      { limit: 5,  windowMs: 3000 },
+  'queue:add':      { limit: 5,  windowMs: 5000 },
+  'queue:remove':   { limit: 5,  windowMs: 5000 },
+  'playback:play':  { limit: 10, windowMs: 1000 },
+  'playback:pause': { limit: 10, windowMs: 1000 },
+  'playback:seek':  { limit: 15, windowMs: 1000 },
+};
+
+function isRateLimited(socketId, event) {
+  const cfg = RATE_LIMITS[event];
+  if (!cfg) return false;
+
+  if (!socketCounts.has(socketId)) socketCounts.set(socketId, {});
+  const counts = socketCounts.get(socketId);
+  const now = Date.now();
+
+  if (!counts[event] || now >= counts[event].resetAt) {
+    counts[event] = { count: 1, resetAt: now + cfg.windowMs };
+    return false;
+  }
+  if (counts[event].count >= cfg.limit) return true;
+  counts[event].count++;
+  return false;
 }
 
 io.on('connection', (socket) => {
@@ -48,6 +89,8 @@ io.on('connection', (socket) => {
       currentIndex: -1,
       isPlaying: false,
       currentTime: 0,
+      playbackBaseTime: 0,
+      playbackStartedAt: null,
     };
     socket.join(room.id);
     socket.data.roomId = room.id;
@@ -70,10 +113,10 @@ io.on('connection', (socket) => {
       room.users.push(user);
     }
 
-    // Send full state to the joining user
-    socket.emit('room:state', room);
+    // Send state with the actual live playback position so new member snaps to it
+    const stateForJoiner = { ...room, currentTime: getActualTime(room) };
+    socket.emit('room:state', stateForJoiner);
 
-    // Notify others
     socket.to(roomId).emit('room:users', room.users);
     _systemMsg(roomId, `${user.name} joined the room`);
     io.emit('lobby:rooms', getRoomSummaries());
@@ -83,12 +126,14 @@ io.on('connection', (socket) => {
   // ── Leave / disconnect ──────────────────────────────────────────────────
   socket.on('room:leave', () => _handleLeave(socket));
   socket.on('disconnect', () => {
+    socketCounts.delete(socket.id);
     _handleLeave(socket);
     console.log(`[disconnect] ${socket.id}`);
   });
 
   // ── Queue ───────────────────────────────────────────────────────────────
   socket.on('queue:add', ({ roomId, item }) => {
+    if (isRateLimited(socket.id, 'queue:add')) return;
     const room = rooms[roomId];
     if (!room) return;
     room.queue.push(item);
@@ -98,12 +143,15 @@ io.on('connection', (socket) => {
       room.currentIndex = room.queue.length - 1;
       room.isPlaying = true;
       room.currentTime = 0;
+      room.playbackBaseTime = 0;
+      room.playbackStartedAt = Date.now();
       io.to(roomId).emit('playback:play', { index: room.currentIndex, time: 0 });
     }
     _systemMsg(roomId, `${item.addedBy} added "${item.title}"`);
   });
 
   socket.on('queue:remove', ({ roomId, index }) => {
+    if (isRateLimited(socket.id, 'queue:remove')) return;
     const room = rooms[roomId];
     if (!room) return;
     const removed = room.queue.splice(index, 1)[0];
@@ -118,27 +166,35 @@ io.on('connection', (socket) => {
 
   // ── Playback ────────────────────────────────────────────────────────────
   socket.on('playback:play', ({ roomId, index, time }) => {
+    if (isRateLimited(socket.id, 'playback:play')) return;
     const room = rooms[roomId];
     if (!room) return;
     room.isPlaying = true;
     room.currentIndex = index;
     room.currentTime = time ?? 0;
-    // Broadcast to everyone EXCEPT the sender
+    room.playbackBaseTime = time ?? 0;
+    room.playbackStartedAt = Date.now();
     socket.to(roomId).emit('playback:play', { index, time: room.currentTime });
   });
 
   socket.on('playback:pause', ({ roomId, time }) => {
+    if (isRateLimited(socket.id, 'playback:pause')) return;
     const room = rooms[roomId];
     if (!room) return;
     room.isPlaying = false;
     room.currentTime = time;
+    room.playbackBaseTime = time;
+    room.playbackStartedAt = null;
     socket.to(roomId).emit('playback:pause', { time });
   });
 
   socket.on('playback:seek', ({ roomId, time }) => {
+    if (isRateLimited(socket.id, 'playback:seek')) return;
     const room = rooms[roomId];
     if (!room) return;
     room.currentTime = time;
+    room.playbackBaseTime = time;
+    if (room.isPlaying) room.playbackStartedAt = Date.now();
     socket.to(roomId).emit('playback:seek', { time });
   });
 
@@ -148,6 +204,7 @@ io.on('connection', (socket) => {
 
   // ── Chat ────────────────────────────────────────────────────────────────
   socket.on('chat:send', ({ roomId, message }) => {
+    if (isRateLimited(socket.id, 'chat:send')) return;
     const room = rooms[roomId];
     if (!room) return;
     room.chat.push(message);
@@ -181,10 +238,13 @@ function _advanceQueue(roomId) {
     room.currentIndex = next;
     room.isPlaying = true;
     room.currentTime = 0;
+    room.playbackBaseTime = 0;
+    room.playbackStartedAt = Date.now();
     io.to(roomId).emit('playback:play', { index: next, time: 0 });
   } else {
     room.currentIndex = -1;
     room.isPlaying = false;
+    room.playbackStartedAt = null;
     io.to(roomId).emit('playback:stopped');
   }
 }
