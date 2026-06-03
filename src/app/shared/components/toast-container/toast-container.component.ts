@@ -29,10 +29,10 @@ import { ToastService } from '../../../core/services/toast.service';
       pointer-events: all; cursor: pointer;
       animation: toastIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
       font-family: 'Instrument Sans', sans-serif; color: #f0eff5;
-      &--success { border-left: 3px solid #52d68a; }
-      &--error   { border-left: 3px solid #e05252; }
-      &--info    { border-left: 3px solid #e8c547; }
-      &--warning { border-left: 3px solid #d6a052; }
+      &.toast--success { border-left: 3px solid #52d68a; }
+      &.toast--error   { border-left: 3px solid #e05252; }
+      &.toast--info    { border-left: 3px solid #e8c547; }
+      &.toast--warning { border-left: 3px solid #d6a052; }
     }
     .toast__icon { font-size: 1rem; flex-shrink: 0; }
     @keyframes toastIn {

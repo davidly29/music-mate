@@ -1,5 +1,5 @@
 <div class="chat">
-  <div class="chat__messages" #messagesEl>
+  <div class="chat__messages" #messagesEl (scroll)="onScroll()">
     @if (!roomService.currentRoom()?.chat?.length) {
       <div class="chat__empty">No messages yet</div>
     }

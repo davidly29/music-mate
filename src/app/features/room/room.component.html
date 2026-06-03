@@ -10,6 +10,33 @@
         <span class="room-header__name">{{ room.name }}</span>
         <span class="room-header__code">Code: {{ room.code }}</span>
       </div>
+
+      <div class="room-header__search">
+        <sw-add-video />
+      </div>
+
+      @if (roomService.playbackState().currentItem; as item) {
+        <div class="room-header__now">
+          <div class="now-playing">
+            <span class="now-playing__label">Now playing</span>
+            <span class="now-playing__title" [title]="item.title">{{ item.title }}</span>
+            <span class="now-playing__meta">Added by {{ item.addedBy }}</span>
+          </div>
+          <button
+            class="now-playing__skip"
+            [class.now-playing__skip--voted]="roomService.hasVotedSkip()"
+            (click)="roomService.voteSkip()"
+            [title]="roomService.hasVotedSkip() ? 'Cancel your skip vote' : 'Vote to skip this video'"
+          >
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M2.5 2.5L9 8l-6.5 5.5V2.5zM12 2.5h1.5v11H12v-11z" fill="currentColor"/>
+            </svg>
+            <span class="now-playing__skip-label">{{ roomService.hasVotedSkip() ? 'Voted' : 'Skip' }}</span>
+            <span class="now-playing__skip-count">{{ roomService.skipVotes().votes }}/{{ roomService.skipVotes().needed }}</span>
+          </button>
+        </div>
+      }
+
       <div class="room-header__users">
         @for (user of room.users.slice(0, 4); track user.id) {
           <div class="user-bubble" [style.background]="user.color" [title]="user.name">
@@ -22,11 +49,18 @@
       </div>
     </header>
 
-    <div class="room-body">
+    <div class="room-body" [class.room-body--collapsed]="sidebarCollapsed()">
       <div class="room-player-col">
         <sw-player />
-        <sw-add-video />
       </div>
+
+      @if (sidebarCollapsed()) {
+        <button class="sidebar-reopen" (click)="toggleSidebar()" title="Show panel" aria-label="Show panel">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      }
 
       <aside class="room-sidebar">
         <div class="sidebar-tabs" role="tablist">
@@ -38,6 +72,11 @@
               role="tab"
             >{{ tab | titlecase }}</button>
           }
+          <button class="sidebar-collapse" (click)="toggleSidebar()" title="Hide panel" aria-label="Hide panel">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
         </div>
 
         <div class="sidebar-panel">

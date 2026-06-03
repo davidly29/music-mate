@@ -60,4 +60,13 @@ export interface YouTubeOEmbed {
   thumbnail_url: string;
 }
 
+export interface RoomSummary {
+  id: string;
+  name: string;
+  code: string;
+  hostId: string;
+  userCount: number;
+  queueLength: number;
+}
+
 export type SidebarTab = 'queue' | 'chat' | 'members';

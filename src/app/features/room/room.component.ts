@@ -19,7 +19,12 @@ import { AddVideoComponent } from './components/add-video/add-video.component';
 })
 export class RoomComponent implements OnInit {
   activeTab = signal<SidebarTab>('queue');
+  sidebarCollapsed = signal(false);
   readonly tabs: SidebarTab[] = ['queue', 'chat', 'members'];
+
+  toggleSidebar(): void {
+    this.sidebarCollapsed.update(v => !v);
+  }
 
   constructor(
     readonly roomService: RoomService,

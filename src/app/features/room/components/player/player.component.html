@@ -1,27 +1,26 @@
 <div class="player">
-  <div class="player__wrapper">
+  <div class="player__stage">
     @if (!roomService.playbackState().currentItem) {
       <div class="player__placeholder">
         <div class="player__placeholder-icon">▶</div>
         <p>Add a YouTube video to get started</p>
       </div>
     }
-    <div #playerEl class="player__el"></div>
+    <div class="player__wrapper">
+      <div #playerEl class="player__el"></div>
+
+      @if (roomService.pausedForSync() && roomService.playbackState().currentItem) {
+        <div class="player__sync">
+          <button class="player__resume" (click)="resume()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M4 2.5L13 8l-9 5.5V2.5z" fill="currentColor"/>
+            </svg>
+            Press play to resume
+          </button>
+          <span class="player__sync-note">Paused so everyone stays in sync</span>
+        </div>
+      }
+    </div>
   </div>
 
-  @if (roomService.playbackState().currentItem; as item) {
-    <div class="player__progress">
-      <span class="player__time">{{ formatTime(currentTimeSec()) }}</span>
-      <div class="player__bar">
-        <div class="player__fill" [style.width.%]="progressPercent()"></div>
-      </div>
-      <span class="player__time">{{ formatTime(durationSec()) }}</span>
-    </div>
-
-    <div class="player__now-playing">
-      <span class="player__np-label">Now playing</span>
-      <h2 class="player__np-title">{{ item.title }}</h2>
-      <p class="player__np-meta">Added by {{ item.addedBy }}</p>
-    </div>
-  }
 </div>

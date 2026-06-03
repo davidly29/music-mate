@@ -19,7 +19,8 @@
     &:hover { border-color: t.$border2; color: t.$text; }
   }
 
-  &__title { flex: 1; min-width: 0; }
+  // Title is fixed-width-ish on the left (like the YouTube logo slot).
+  &__title { flex-shrink: 0; min-width: 0; max-width: 22%; }
 
   &__name {
     display: block; font-family: t.$font-serif; font-size: 1.15rem; font-style: italic;
@@ -28,8 +29,74 @@
 
   &__code { display: block; font-size: 0.7rem; color: t.$text3; letter-spacing: 0.05em; margin-top: 0.1rem; }
 
-  &__users { display: flex; align-items: center; flex-shrink: 0; }
+  // Centered search bar (YouTube-style).
+  &__search {
+    flex: 1; min-width: 0;
+    display: flex; justify-content: center;
+  }
+
+  // "Now playing" cluster + skip button, separated by a divider.
+  &__now {
+    display: flex; align-items: center; gap: 0.65rem;
+    flex-shrink: 1; min-width: 0; max-width: 260px;
+    padding-left: 1rem; border-left: 1px solid t.$border;
+  }
+
+  // Watching avatars, separated by a divider so it's clearly its own group.
+  &__users {
+    display: flex; align-items: center; flex-shrink: 0;
+    padding-left: 1rem; border-left: 1px solid t.$border;
+  }
+
+  @media (max-width: 1100px) {
+    // Drop the now-playing text when space is tight; keep the skip control.
+    &__now { max-width: none; }
+    .now-playing { display: none; }
+  }
+
+  @media (max-width: 700px) {
+    flex-wrap: wrap;
+    &__title { max-width: none; flex: 1; }
+    &__search { order: 3; flex: 1 1 100%; justify-content: stretch; }
+    &__now { display: none; }
+  }
 }
+
+// ── Now playing (header) ──────────────────────────────────────────────────────
+.now-playing {
+  display: flex; flex-direction: column; min-width: 0; gap: 0.05rem; line-height: 1.25;
+
+  &__label {
+    font-size: 0.55rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: t.$accent; font-weight: 700;
+  }
+  &__title {
+    font-size: 0.82rem; font-weight: 600; color: t.$text;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;
+  }
+  &__meta {
+    font-size: 0.66rem; color: t.$text3;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;
+  }
+
+  &__skip {
+    display: inline-flex; align-items: center; gap: 0.35rem; flex-shrink: 0;
+    padding: 0.4rem 0.65rem; border: 1px solid t.$border; border-radius: 18px;
+    background: t.$surface2; color: t.$text2;
+    font-family: t.$font-sans; font-size: 0.72rem; font-weight: 600; cursor: pointer;
+    transition: border-color t.$transition, color t.$transition, background t.$transition;
+    &:hover { border-color: t.$border2; color: t.$text; }
+    &--voted { background: rgba(232,197,71,0.12); border-color: t.$accent; color: t.$accent; }
+  }
+
+  &__skip-count {
+    font-variant-numeric: tabular-nums; font-size: 0.68rem;
+    padding: 0.02rem 0.35rem; border-radius: 9px;
+    background: rgba(255,255,255,0.06); color: t.$text3;
+  }
+}
+
+.now-playing__skip--voted .now-playing__skip-count { color: t.$accent; }
 
 .user-bubble {
   width: 30px; height: 30px; border-radius: 50%;
@@ -45,27 +112,63 @@
 .room-body {
   display: grid; grid-template-columns: 1fr 340px;
   flex: 1; min-height: 0; overflow: hidden;
+  position: relative;
+  transition: grid-template-columns 0.25s ease;
+
+  &--collapsed {
+    grid-template-columns: 1fr 0;
+    .room-sidebar { border-left: none; }
+  }
 
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
     overflow-y: auto;
+
+    &--collapsed .room-sidebar { display: none; }
   }
+}
+
+// Floating button to reopen the sidebar once it's collapsed.
+.sidebar-reopen {
+  position: absolute; top: 0.75rem; right: 0.75rem; z-index: 20;
+  width: 34px; height: 34px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid t.$border; color: t.$text2;
+  background: rgba(10, 10, 12, 0.7);
+  backdrop-filter: blur(8px);
+  transition: all t.$transition;
+  &:hover { border-color: t.$border2; color: t.$text; }
+}
+
+// Collapse button living in the sidebar tab row.
+.sidebar-collapse {
+  flex-shrink: 0;
+  width: 36px;
+  display: flex; align-items: center; justify-content: center;
+  color: t.$text3; border-left: 1px solid t.$border;
+  transition: color t.$transition;
+  &:hover { color: t.$text; }
 }
 
 .room-player-col {
   display: flex;
   flex-direction: column;
-  overflow: hidden;      // ← change from overflow-y: auto
+  overflow-y: auto;      // scroll if the full-width 16:9 video + meta exceeds height
+  overflow-x: hidden;
   min-width: 0;
-  height: 100%;          // ← add this
+  min-height: 0;
+  height: 100%;
 }
 
 .room-sidebar {
   border-left: 1px solid t.$border;
   background: t.$surface;
   display: flex; flex-direction: column; overflow: hidden;
+  min-height: 0;         // let the chat/queue panel scroll instead of pushing input off-screen
+  min-width: 0;          // allow the column to collapse fully to 0
+  height: 100%;
 
-  @media (max-width: 900px) { border-left: none; border-top: 1px solid t.$border; max-height: 60vh; }
+  @media (max-width: 900px) { border-left: none; border-top: 1px solid t.$border; height: 60vh; max-height: 60vh; }
 }
 
 .sidebar-tabs { display: flex; border-bottom: 1px solid t.$border; flex-shrink: 0; }

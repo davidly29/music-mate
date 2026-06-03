@@ -49,10 +49,18 @@ const RATE_LIMITS = {
   'chat:send':      { limit: 5,  windowMs: 3000 },
   'queue:add':      { limit: 5,  windowMs: 5000 },
   'queue:remove':   { limit: 5,  windowMs: 5000 },
+  'queue:reorder':  { limit: 20, windowMs: 5000 },
   'playback:play':  { limit: 10, windowMs: 1000 },
   'playback:pause': { limit: 10, windowMs: 1000 },
   'playback:seek':  { limit: 15, windowMs: 1000 },
+  'vote:skip':      { limit: 5,  windowMs: 3000 },
 };
+
+// 75% of the party must vote to skip the current video.
+const SKIP_THRESHOLD = 0.75;
+function votesNeeded(room) {
+  return Math.max(1, Math.ceil(room.users.length * SKIP_THRESHOLD));
+}
 
 function isRateLimited(socketId, event) {
   const cfg = RATE_LIMITS[event];
@@ -91,6 +99,7 @@ io.on('connection', (socket) => {
       currentTime: 0,
       playbackBaseTime: 0,
       playbackStartedAt: null,
+      skipVotes: [],
     };
     socket.join(room.id);
     socket.data.roomId = room.id;
@@ -113,12 +122,29 @@ io.on('connection', (socket) => {
       room.users.push(user);
     }
 
-    // Send state with the actual live playback position so new member snaps to it
+    let joinNote = `${user.name} joined the room`;
+
+    // If a video is playing, pause the whole room at the live position so the
+    // newcomer can load in perfectly synced. Anyone can press play to resume
+    // together — this avoids the join echo that used to restart the video.
+    if (room.isPlaying && room.currentIndex >= 0) {
+      const syncedTime = getActualTime(room);
+      room.isPlaying = false;
+      room.currentTime = syncedTime;
+      room.playbackBaseTime = syncedTime;
+      room.playbackStartedAt = null;
+      socket.to(roomId).emit('playback:pause', { time: syncedTime, reason: 'sync' });
+      joinNote = `${user.name} joined — paused to sync. Press play to resume.`;
+    }
+
+    // Send state with the live (now paused) playback position so the joiner
+    // cues to the exact spot instead of restarting from the beginning.
     const stateForJoiner = { ...room, currentTime: getActualTime(room) };
     socket.emit('room:state', stateForJoiner);
 
     socket.to(roomId).emit('room:users', room.users);
-    _systemMsg(roomId, `${user.name} joined the room`);
+    _emitSkipUpdate(roomId); // refresh counts/threshold for the new party size
+    _systemMsg(roomId, joinNote);
     io.emit('lobby:rooms', getRoomSummaries());
     console.log(`[room:join] ${user.name} → ${room.name}`);
   });
@@ -164,17 +190,44 @@ io.on('connection', (socket) => {
     if (removed) _systemMsg(roomId, `"${removed.title}" removed from queue`);
   });
 
+  socket.on('queue:reorder', ({ roomId, from, to }) => {
+    if (isRateLimited(socket.id, 'queue:reorder')) return;
+    const room = rooms[roomId];
+    if (!room) return;
+    const len = room.queue.length;
+    if (
+      !Number.isInteger(from) || !Number.isInteger(to) ||
+      from < 0 || from >= len || to < 0 || to >= len || from === to
+    ) return;
+
+    const [moved] = room.queue.splice(from, 1);
+    room.queue.splice(to, 0, moved);
+
+    // Keep currentIndex pointing at the same (still playing) item.
+    const ci = room.currentIndex;
+    if (ci === from) room.currentIndex = to;
+    else if (from < ci && to >= ci) room.currentIndex = ci - 1;
+    else if (from > ci && to <= ci) room.currentIndex = ci + 1;
+
+    io.to(roomId).emit('queue:updated', room.queue);
+  });
+
   // ── Playback ────────────────────────────────────────────────────────────
   socket.on('playback:play', ({ roomId, index, time }) => {
     if (isRateLimited(socket.id, 'playback:play')) return;
     const room = rooms[roomId];
     if (!room) return;
+    const changedVideo = room.currentIndex !== index;
     room.isPlaying = true;
     room.currentIndex = index;
     room.currentTime = time ?? 0;
     room.playbackBaseTime = time ?? 0;
     room.playbackStartedAt = Date.now();
     socket.to(roomId).emit('playback:play', { index, time: room.currentTime });
+    if (changedVideo) {
+      room.skipVotes = []; // switching videos clears any in-progress vote
+      _emitSkipUpdate(roomId);
+    }
   });
 
   socket.on('playback:pause', ({ roomId, time }) => {
@@ -210,6 +263,29 @@ io.on('connection', (socket) => {
     room.chat.push(message);
     io.to(roomId).emit('chat:message', message);
   });
+
+  // ── Vote to skip ──────────────────────────────────────────────────────────
+  socket.on('vote:skip', ({ roomId, userId }) => {
+    if (isRateLimited(socket.id, 'vote:skip')) return;
+    const room = rooms[roomId];
+    if (!room || room.currentIndex < 0 || !userId) return;
+    if (!Array.isArray(room.skipVotes)) room.skipVotes = [];
+
+    // Only count votes from users actually in the room
+    if (!room.users.some(u => u.id === userId)) return;
+
+    const i = room.skipVotes.indexOf(userId);
+    if (i === -1) room.skipVotes.push(userId);
+    else room.skipVotes.splice(i, 1);
+
+    if (room.skipVotes.length >= votesNeeded(room)) {
+      const skipped = room.queue[room.currentIndex];
+      _systemMsg(roomId, `Vote passed — skipping${skipped ? ` "${skipped.title}"` : ''}`);
+      _advanceQueue(roomId); // clears votes + emits skip update
+    } else {
+      _emitSkipUpdate(roomId);
+    }
+  });
 });
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -226,6 +302,16 @@ function _handleLeave(socket) {
   } else {
     io.to(roomId).emit('room:users', room.users);
     _systemMsg(roomId, `${user.name} left the room`);
+
+    // Drop the leaver's vote; a smaller party may now meet the 75% threshold.
+    room.skipVotes = (room.skipVotes || []).filter(id => room.users.some(u => u.id === id));
+    if (room.currentIndex >= 0 && room.skipVotes.length >= votesNeeded(room)) {
+      const skipped = room.queue[room.currentIndex];
+      _systemMsg(roomId, `Vote passed — skipping${skipped ? ` "${skipped.title}"` : ''}`);
+      _advanceQueue(roomId);
+    } else {
+      _emitSkipUpdate(roomId);
+    }
   }
   io.emit('lobby:rooms', getRoomSummaries());
 }
@@ -233,6 +319,7 @@ function _handleLeave(socket) {
 function _advanceQueue(roomId) {
   const room = rooms[roomId];
   if (!room) return;
+  room.skipVotes = []; // a new (or no) video starts with a clean slate
   const next = room.currentIndex + 1;
   if (next < room.queue.length) {
     room.currentIndex = next;
@@ -247,6 +334,18 @@ function _advanceQueue(roomId) {
     room.playbackStartedAt = null;
     io.to(roomId).emit('playback:stopped');
   }
+  _emitSkipUpdate(roomId);
+}
+
+function _emitSkipUpdate(roomId) {
+  const room = rooms[roomId];
+  if (!room) return;
+  io.to(roomId).emit('vote:skip:update', {
+    votes: (room.skipVotes || []).length,
+    needed: votesNeeded(room),
+    total: room.users.length,
+    voters: room.skipVotes || [],
+  });
 }
 
 function _systemMsg(roomId, text) {

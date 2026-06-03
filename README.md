@@ -81,9 +81,20 @@ User A presses Play
 
 New user joins mid-video
   → Server computes currentTime = baseTime + (now - startedAt) / 1000
-  → Sends live position in room:state
-  → Player seeks to actual current timestamp on load
+  → Server PAUSES the room at that position (broadcasts playback:pause reason=sync)
+  → Joiner cues the video at the exact timestamp (no autoplay → no echo/restart)
+  → Anyone presses play → everyone resumes from the same point, in sync
 ```
+
+## Other features
+
+- **Vote to skip** — anyone can vote to skip the current video; once ≥75% of the
+  party has voted it's skipped automatically. Votes reset on each new video and
+  the threshold recomputes as people join/leave.
+- **Reorderable queue** — drag queue items by the handle to change play order
+  (Angular CDK drag-drop); the playing item is tracked by id so it stays current.
+- **Collapsible side panel** — hide the queue/chat/members panel to give the
+  video full width.
 
 ---
 
