@@ -14,21 +14,31 @@
   flex: 1;
   min-height: 0;
 
-  // The stage fills the full column width; the video sits flush inside it with
-  // no surround. Black only ever shows behind the video while it loads.
+  // The stage fills all remaining height and centers the video inside it.
+  // Sizing the video by the available height (not the column width) means it can
+  // never grow taller than its column, so the column never needs a scrollbar —
+  // which is what kills the scrollbar-feedback jitter during playback.
   &__stage {
     position: relative;
-    width: 100%;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: #000;
-    flex-shrink: 0;
+    overflow: hidden;
   }
 
-  // Classic responsive embed: a true 16:9 box that fills the column width, so the
-  // YouTube iframe matches the video exactly — no letterbox/pillarbox bars.
+  // Contain-fit (theater): the wrapper is the largest 16:9 box that fits within
+  // both axes of the stage. height:100% drives it and width is derived from the
+  // ratio, capped at 100%; when capped, the ratio transfers back to the height,
+  // so the box always fits fully — no clipping, no overflow, no scroll.
   &__wrapper {
     position: relative;
-    width: 100%;
     aspect-ratio: 16 / 9;
+    height: 100%;
+    width: auto;
+    max-width: 100%;
   }
 
   &__el {

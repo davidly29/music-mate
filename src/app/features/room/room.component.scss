@@ -153,8 +153,7 @@
 .room-player-col {
   display: flex;
   flex-direction: column;
-  overflow-y: auto;      // scroll if the full-width 16:9 video + meta exceeds height
-  overflow-x: hidden;
+  overflow: hidden;      // video is contain-fit to the column, so it never needs to scroll
   min-width: 0;
   min-height: 0;
   height: 100%;
